@@ -163,7 +163,7 @@ def run_training(args, train_data, val_data):
         fp16=not args.no_fp16,
         bf16=args.bf16,
         weight_decay=args.weight_decay,
-        run_name="llama-7b-finetuned",
+        run_name=f"{args.model_path.split('/')[-1]}-finetuned",
         report_to="wandb",
         ddp_find_unused_parameters=False,
     )
@@ -172,12 +172,15 @@ def run_training(args, train_data, val_data):
         args.model_path, load_in_8bit=True, device_map={"": Accelerator().process_index}
     )
 
+    # TODO: Add more metrics, e.g. Toxicity, from Evaluate.
+
     trainer = SFTTrainer(
         model=model,
         args=training_args,
         train_dataset=train_data,
         eval_dataset=val_data,
         peft_config=lora_config,
+        # compute_metrics=,
         packing=True,
     )
 

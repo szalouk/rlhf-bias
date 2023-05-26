@@ -42,35 +42,55 @@ class ScriptArguments:
 
     # NOTE: gpt2 models use Conv1D instead of Linear layers which are not yet supported in 8 bit mode
     # models like gpt-neo* models are more suitable.
-    model_name: Optional[str] = field(default="", metadata={"help": "the model name"})
-    tokenizer_name: Optional[str] = field(default="", metadata={"help": "the tokenizer name"})
-    reward_model_name: Optional[str] = field(default="", metadata={"help": "the reward model name"})
-    log_with: Optional[str] = field(default=None, metadata={"help": "use 'wandb' to log with wandb"})
-    learning_rate: Optional[float] = field(default=1.41e-5, metadata={"help": "the learning rate"})
-    output_max_length: Optional[int] = field(default=128, metadata={"help": "maximum length for generation"})
-    mini_batch_size: Optional[int] = field(default=1, metadata={"help": "the PPO minibatch size"})
-    batch_size: Optional[int] = field(default=32, metadata={"help": "the batch size"})
-    ppo_epochs: Optional[int] = field(default=4, metadata={"help": "the number of ppo epochs"})
+    model_name: Optional[str] = field(
+        default="", metadata={"help": "the model name"})
+    tokenizer_name: Optional[str] = field(
+        default="", metadata={"help": "the tokenizer name"})
+    reward_model_name: Optional[str] = field(
+        default="", metadata={"help": "the reward model name"})
+    log_with: Optional[str] = field(
+        default=None, metadata={"help": "use 'wandb' to log with wandb"})
+    learning_rate: Optional[float] = field(
+        default=1.41e-5, metadata={"help": "the learning rate"})
+    output_max_length: Optional[int] = field(
+        default=128, metadata={"help": "maximum length for generation"})
+    mini_batch_size: Optional[int] = field(
+        default=1, metadata={"help": "the PPO minibatch size"})
+    batch_size: Optional[int] = field(
+        default=32, metadata={"help": "the batch size"})
+    ppo_epochs: Optional[int] = field(
+        default=4, metadata={"help": "the number of ppo epochs"})
     gradient_accumulation_steps: Optional[int] = field(
         default=4, metadata={"help": "the number of gradient accumulation steps"}
     )
-    adafactor: Optional[bool] = field(default=False, metadata={"help": "whether to use the adafactor optimizer"})
-    early_stopping: Optional[bool] = field(default=False, metadata={"help": "whether to early stop"})
-    target_kl: Optional[float] = field(default=0.1, metadata={"help": "kl target for early stopping"})
+    adafactor: Optional[bool] = field(
+        default=False, metadata={"help": "whether to use the adafactor optimizer"})
+    early_stopping: Optional[bool] = field(
+        default=False, metadata={"help": "whether to early stop"})
+    target_kl: Optional[float] = field(
+        default=0.1, metadata={"help": "kl target for early stopping"})
     reward_baseline: Optional[float] = field(
         default=0.0,
         metadata={"help": "a baseline value that is subtracted from the reward"},
     )
-    batched_gen: Optional[bool] = field(default=False, metadata={"help": "whether to use the batched text gen"})
-    save_freq: Optional[int] = field(default=None, metadata={"help": "n steps to save the model"})
-    output_dir: Optional[str] = field(default="runs/", metadata={"help": "n steps to save the model"})
+    batched_gen: Optional[bool] = field(
+        default=False, metadata={"help": "whether to use the batched text gen"})
+    save_freq: Optional[int] = field(
+        default=None, metadata={"help": "n steps to save the model"})
+    output_dir: Optional[str] = field(
+        default="runs/", metadata={"help": "n steps to save the model"})
     seed: Optional[int] = field(default=0, metadata={"help": "the seed"})
+    dataset: Optional[str] = field(
+        default="lvwerra/stack-exchange-paired",
+        metadata={"help": "Dataset (as defined by HuggingFace library)"}
+    )
+    num_training_examples: Optional[int] = field(default="10000", metadata={
+                                                 "help": "Number of examples to truncate train dataset to"})
 
 
 parser = HfArgumentParser(ScriptArguments)
 script_args: ScriptArguments = parser.parse_args_into_dataclasses()[0]
 reward_model_name = script_args.reward_model_name
-dataset_name = "lvwerra/stack-exchange-paired"
 config = PPOConfig(
     model_name=script_args.model_name,
     learning_rate=script_args.learning_rate,
@@ -85,14 +105,18 @@ config = PPOConfig(
     seed=script_args.seed,
 )
 
-train_dataset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/rl", split="train")
+train_dataset = load_dataset(
+    script_args.dataset, data_dir="data/rl", split="train")
 print(f'train_dataset size = {len(train_dataset)}')
-train_dataset = train_dataset.select(range(10000))
+train_dataset = train_dataset.select(range(script_args.num_training_examples))
+
 # We then define the arguments to pass to the sentiment analysis pipeline.
 # We set `return_all_scores` to True to get the sentiment score for each token.
-sent_kwargs = {"return_all_scores": True, "function_to_apply": "none", "batch_size": 16, "truncation": True}
+sent_kwargs = {"return_all_scores": True,
+               "function_to_apply": "none", "batch_size": 16, "truncation": True}
 
-tokenizer = AutoTokenizer.from_pretrained(script_args.tokenizer_name, use_auth_token=True)
+tokenizer = AutoTokenizer.from_pretrained(
+    script_args.tokenizer_name, use_auth_token=True)
 # GPT-2 tokenizer has a pad token, but it is not eos_token by default. We need to set it to eos_token.
 # only for this model.
 
@@ -250,16 +274,18 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
         length_sampler=output_length_sampler,
         **generation_kwargs,
     )
-    batch["response"] = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)
-    
+    batch["response"] = tokenizer.batch_decode(
+        response_tensors, skip_special_tokens=True)
+
     # Compute sentiment score
     texts = [q + r for q, r in zip(batch["query"], batch["response"])]
     pipe_outputs = sentiment_pipe(texts, **sent_kwargs)
-    rewards = [torch.tensor(output[0]["score"] - script_args.reward_baseline) for output in pipe_outputs]
+    rewards = [torch.tensor(
+        output[0]["score"] - script_args.reward_baseline) for output in pipe_outputs]
 
     # Run PPO step
     stats = ppo_trainer.step(question_tensors, response_tensors, rewards)
     ppo_trainer.log_stats(stats, batch, rewards)
-    
+
     if script_args.save_freq and epoch and epoch % script_args.save_freq == 0:
         ppo_trainer.save_pretrained(script_args.output_dir + f"step_{epoch}")
