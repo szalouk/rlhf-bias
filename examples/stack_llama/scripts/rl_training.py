@@ -75,6 +75,7 @@ class ScriptArguments:
         default=0.0,
         metadata={"help": "a baseline value that is subtracted from the reward"},
     )
+    batched_gen: Optional[bool] = field(default=False, metadata={"help": "whether to use the batched text gen"})
     save_freq: Optional[int] = field(
         default=None, metadata={"help": "n steps to save the model"})  # Cmd param = 100
     output_dir: Optional[str] = field(
