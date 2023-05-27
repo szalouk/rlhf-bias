@@ -87,11 +87,11 @@ class ScriptArguments:
     )
     max_length: Optional[int] = field(default=512)
     eval_steps: Optional[int] = field(
-        default="6000",
+        default=6000,
         metadata={"help": "Num steps before eval"}
     )
     save_steps: Optional[int] = field(
-        default="6000",
+        default=6000,
         metadata={"help": "Num steps before saving model checkpoint"}
     )
     dataset: Optional[str] = field(
@@ -141,10 +141,13 @@ training_args = TrainingArguments(
     optim=script_args.optim,
     lr_scheduler_type=script_args.lr_scheduler_type,
 
+    # Report to Weights & Biases
     report_to="wandb",
+
+    # Save best and last checkpoints
     load_best_model_at_end=True,
-    # metric_for_best_model=TBD,
-    # greater_is_better=TBD,
+    metric_for_best_model="eval_accuracy",
+    greater_is_better=True,
     save_total_limit=2,
 )
 # Load the value-head model and tokenizer.
@@ -308,7 +311,8 @@ trainer = RewardTrainer(  # Custom loss fn (InstructGPT pairwise logloss, see ab
     model=model,
     args=training_args,
     train_dataset=train_dataset,
-    eval_dataset=eval_dataset,  # Hardcoded to evaluate.load("accuracy") for now
+    # Hardcoded to evaluate.load("accuracy") for now
+    eval_dataset=eval_dataset,
     compute_metrics=compute_metrics,
     data_collator=RewardDataCollatorWithPadding(
         tokenizer=tokenizer, max_length=script_args.max_length),
