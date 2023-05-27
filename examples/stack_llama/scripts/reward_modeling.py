@@ -215,7 +215,7 @@ def preprocess_function(examples):
 
 
 # preprocess the dataset and filter out QAs that are longer than script_args.max_length
-'''train_dataset = train_dataset.map(
+train_dataset = train_dataset.map(
     preprocess_function, batched=True, num_proc=num_proc, remove_columns=original_columns
 )
 train_dataset = train_dataset.filter(
@@ -228,53 +228,90 @@ eval_dataset = eval_dataset.map(
 eval_dataset = eval_dataset.filter(
     lambda x: len(x["input_ids_j"]) <= script_args.max_length and len(
         x["input_ids_k"]) <= script_args.max_length
-)'''
-
+)
 
 # We need to define a special data collator that batches the data in our j vs k format.
+# @dataclass
+# class RewardDataCollatorWithPadding:
+#     tokenizer: PreTrainedTokenizerBase
+#     padding: Union[bool, str, PaddingStrategy] = True
+#     max_length: Optional[int] = None
+#     pad_to_multiple_of: Optional[int] = None
+#     return_tensors: str = "pt"
+
+#     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
+#         features_j = []
+#         features_k = []
+#         for feature in features:
+#             features_j.append(
+#                 {
+#                     "input_ids": feature["input_ids_j"],
+#                     "attention_mask": feature["attention_mask_j"],
+#                 }
+#             )
+#             features_k.append(
+#                 {
+#                     "input_ids": feature["input_ids_k"],
+#                     "attention_mask": feature["attention_mask_k"],
+#                 }
+#             )
+#         batch_j = self.tokenizer.pad(
+#             features_j,
+#             padding=self.padding,
+#             max_length=self.max_length,
+#             pad_to_multiple_of=self.pad_to_multiple_of,
+#             return_tensors=self.return_tensors,
+#         )
+#         batch_k = self.tokenizer.pad(
+#             features_k,
+#             padding=self.padding,
+#             max_length=self.max_length,
+#             pad_to_multiple_of=self.pad_to_multiple_of,
+#             return_tensors=self.return_tensors,
+#         )
+#         batch = {
+#             "input_ids_j": batch_j["input_ids"],
+#             "attention_mask_j": batch_j["attention_mask"],
+#             "input_ids_k": batch_k["input_ids"],
+#             "attention_mask_k": batch_k["attention_mask"],
+#             "return_loss": True,
+#         }
+#         return batch
 @dataclass
 class RewardDataCollatorWithPadding:
-    tokenizer: PreTrainedTokenizerBase
+    tokenizer: AutoTokenizer
     padding: Union[bool, str, PaddingStrategy] = True
     max_length: Optional[int] = None
     pad_to_multiple_of: Optional[int] = None
     return_tensors: str = "pt"
 
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
-        features_j = []
-        features_k = []
+        merged_features = []
+        # features_j = []
+        # features_k = []
         for feature in features:
-            features_j.append(
+            merged_features.append(
                 {
                     "input_ids": feature["input_ids_j"],
                     "attention_mask": feature["attention_mask_j"],
                 }
             )
-            features_k.append(
+            merged_features.append(
                 {
                     "input_ids": feature["input_ids_k"],
                     "attention_mask": feature["attention_mask_k"],
                 }
             )
-        batch_j = self.tokenizer.pad(
-            features_j,
-            padding=self.padding,
-            max_length=self.max_length,
-            pad_to_multiple_of=self.pad_to_multiple_of,
-            return_tensors=self.return_tensors,
-        )
-        batch_k = self.tokenizer.pad(
-            features_k,
+        batch = self.tokenizer.pad(
+            merged_features,
             padding=self.padding,
             max_length=self.max_length,
             pad_to_multiple_of=self.pad_to_multiple_of,
             return_tensors=self.return_tensors,
         )
         batch = {
-            "input_ids_j": batch_j["input_ids"],
-            "attention_mask_j": batch_j["attention_mask"],
-            "input_ids_k": batch_k["input_ids"],
-            "attention_mask_k": batch_k["attention_mask"],
+            "input_ids": batch["input_ids"],
+            "attention_mask": batch["attention_mask"],
             "return_loss": True,
         }
         return batch
@@ -295,11 +332,24 @@ def compute_metrics(eval_pred):
 
 class RewardTrainer(Trainer):
     # Define how to compute the reward loss. We use the InstructGPT pairwise logloss: https://arxiv.org/abs/2203.02155
+    # def compute_loss(self, model, inputs, return_outputs=False):
+    #     rewards_j = model(
+    #         input_ids=inputs["input_ids_j"], attention_mask=inputs["attention_mask_j"])[0]
+    #     rewards_k = model(
+    #         input_ids=inputs["input_ids_k"], attention_mask=inputs["attention_mask_k"])[0]
+    #     loss = -nn.functional.logsigmoid(rewards_j - rewards_k).mean()
+    #     if return_outputs:
+    #         return loss, {"rewards_j": rewards_j, "rewards_k": rewards_k}
+    #     return loss
     def compute_loss(self, model, inputs, return_outputs=False):
-        rewards_j = model(
-            input_ids=inputs["input_ids_j"], attention_mask=inputs["attention_mask_j"])[0]
-        rewards_k = model(
-            input_ids=inputs["input_ids_k"], attention_mask=inputs["attention_mask_k"])[0]
+        rewards = model(
+            input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"]
+        )[0]
+        bsz = rewards.size(0)
+        jidx = torch.arange(0, bsz, 2)
+        kidx = jidx + 1
+        rewards_j = rewards[jidx]
+        rewards_k = rewards[kidx]
         loss = -nn.functional.logsigmoid(rewards_j - rewards_k).mean()
         if return_outputs:
             return loss, {"rewards_j": rewards_j, "rewards_k": rewards_k}
