@@ -215,6 +215,7 @@ def preprocess_function(examples):
 
 
 # preprocess the dataset and filter out QAs that are longer than script_args.max_length
+print("preprocess train dataset:")
 train_dataset = train_dataset.map(
     preprocess_function, batched=True, num_proc=num_proc, remove_columns=original_columns
 )
@@ -223,6 +224,7 @@ train_dataset = train_dataset.filter(
         x["input_ids_k"]) <= script_args.max_length
 )
 
+print("preprocess eval dataset:")
 eval_dataset = eval_dataset.map(
     preprocess_function, batched=True, num_proc=num_proc, remove_columns=original_columns)
 eval_dataset = eval_dataset.filter(
@@ -354,7 +356,6 @@ class RewardTrainer(Trainer):
         if return_outputs:
             return loss, {"rewards_j": rewards_j, "rewards_k": rewards_k}
         return loss
-
 
 # Train the model, woohoo.
 trainer = RewardTrainer(  # Custom loss fn (InstructGPT pairwise logloss, see above)
