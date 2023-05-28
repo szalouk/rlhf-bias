@@ -166,6 +166,7 @@ def run_training(args, train_data, val_data):
         run_name=f"{args.model_path.split('/')[-1]}-finetuned",
         report_to="wandb",
         ddp_find_unused_parameters=False,
+        disable_tqdm=False
     )
 
     model = AutoModelForCausalLM.from_pretrained(
