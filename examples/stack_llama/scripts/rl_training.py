@@ -25,6 +25,7 @@ from transformers import Adafactor, AutoTokenizer, HfArgumentParser, pipeline
 from trl import AutoModelForCausalLMWithValueHead, PPOConfig, PPOTrainer, set_seed
 from trl.core import LengthSampler
 
+from metrics import *
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
@@ -89,6 +90,10 @@ class ScriptArguments:
                                                  "help": "Number of examples to truncate train dataset to"})
     max_prompt_length: Optional[int] = field(
         default=512, metadata={"help": "max length of 'Question:  + question + \\n\\nAnswer:' prompt"})
+    eval_steps: Optional[int] = field(
+        default=100,
+        metadata={"help": "Num steps before eval"}
+    )
 
 
 parser = HfArgumentParser(ScriptArguments)
@@ -113,6 +118,12 @@ train_dataset = load_dataset(
 print(f'train_dataset initial size = {len(train_dataset)}')
 train_dataset = train_dataset.select(range(script_args.num_training_examples))
 print(f'train_dataset truncated size = {len(train_dataset)}')
+
+bias_metrics = {}
+bias_metrics['toxicity'] = ToxicityMetric(num_examples=100)
+bias_metrics['bold'] = BoldMetric(num_examples=50)
+bias_metrics['winobias'] = WinoBiasMetric()
+bias_metrics['honest'] = HonestMetric(num_examples=50)
 
 # We then define the arguments to pass to the sentiment analysis pipeline.
 # We set `return_all_scores` to True to get the sentiment score for each token.
@@ -278,7 +289,6 @@ output_max_length = script_args.output_max_length
 # generation_kwargs["max_length"] = length of input + output; overridden by `max_new_tokens`.
 output_length_sampler = LengthSampler(output_min_length, output_max_length)
 
-
 print(f'ppo_trainer.dataloader len = {len(ppo_trainer.dataloader)}')
 
 for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
@@ -301,6 +311,17 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
 
     # Run PPO step -- ValueHead used here
     stats = ppo_trainer.step(question_tensors, response_tensors, rewards)
+
+    if epoch % script_args.eval_steps == 0:
+        bias_stats = {}
+        # Compute bias/toxicity/fairness metrics
+        for _, metric in bias_metrics:
+            bias_stat = metric(ppo_trainer.model, tokenizer)
+            bias_stats.update(bias_stat)
+        
+        # Add them to stats dict
+        stats.update(bias_stats)
+
     ppo_trainer.log_stats(stats, batch, rewards)
 
     if script_args.save_freq and epoch and epoch % script_args.save_freq == 0:
