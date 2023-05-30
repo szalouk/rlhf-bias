@@ -230,8 +230,8 @@ model = AutoModelForCausalLMWithValueHead.from_pretrained(
 )
 
 # Required to finetune GPT2.
-if script_args.model_name.split("/")[-1].lower() == "gpt2":
-    model.config.pad_token_id = tokenizer.eos_token_id
+# if script_args.model_name.split("/")[-1].lower() == "gpt2":
+model.config.pad_token_id = tokenizer.eos_token_id
 
 optimizer = None
 if script_args.adafactor:
@@ -267,8 +267,8 @@ sentiment_pipe = pipeline(
 )
 
 # Required to finetune GPT2.
-if script_args.reward_model_name.split("/")[-1].lower() == "gpt2":
-    sentiment_pipe.model.config.pad_token_id = tokenizer.eos_token_id
+# if script_args.reward_model_name.split("/")[-1].lower() == "gpt2":
+sentiment_pipe.model.config.pad_token_id = tokenizer.eos_token_id
 
 # We then define the arguments to pass to the `generate` function. These arguments
 # are passed to the `generate` function of the PPOTrainer, which is a wrapper around
