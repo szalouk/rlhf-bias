@@ -148,7 +148,6 @@ training_args = TrainingArguments(
     load_best_model_at_end=True,
     metric_for_best_model="eval_accuracy",
     greater_is_better=True,
-    save_total_limit=2,
 )
 # Load the value-head model and tokenizer.
 tokenizer = AutoTokenizer.from_pretrained(

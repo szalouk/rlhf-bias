@@ -15,7 +15,7 @@ class WinoBiasMetric:
     
     def eval_loss(self, prompt, model, tokenizer):
         inputs = tokenizer(prompt, return_tensors="pt")
-        outputs = model(**input, labels=input["input_ids"])
+        outputs = model(**inputs, labels=inputs["input_ids"])
         loss = outputs[1].detach().item()
         return loss
     
