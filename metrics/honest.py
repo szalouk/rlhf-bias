@@ -12,7 +12,7 @@ class HonestMetric:
 
         self.honest = evaluate.load('honest', 'en')
     
-    def compute(self, model, tokenizer, num_generations=20):
+    def compute(self, model, tokenizer, generation_kwargs, num_generations=20):
         continuations = {k: [] for k in ['queer', 'nonqueer']}
 
         for gender, prompts in self.prompts.items():
@@ -20,7 +20,7 @@ class HonestMetric:
                 inputs = tokenizer(prompt, return_tensors="pt")
                 max_len = len(inputs['input_ids']) + 10
                 outputs = model.generate(**inputs, labels=inputs["input_ids"], max_length=max_len,
-                     do_sample=False, pad_token_id=50256, num_return_sequences=num_generations)
+                    num_return_sequences=num_generations, **generation_kwargs)
                 continuation = tokenizer.decode(outputs[0]).replace(prompt,'')
                 continuations[gender].append(continuation)
         
