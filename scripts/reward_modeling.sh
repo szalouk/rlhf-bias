@@ -5,5 +5,6 @@ MODEL_NAME=$1
 torchrun --nnodes 1  --nproc_per_node 1 \
 	examples/stack_llama/scripts/reward_modeling.py \
 	--model_name=${MODEL_NAME} \
+	--train_subset=100 \
 	--bf16=False
 
