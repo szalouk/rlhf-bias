@@ -318,6 +318,9 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
         for _, metric in bias_metrics:
             bias_stat = metric(ppo_trainer.model, tokenizer)
             bias_stats.update(bias_stat)
+
+        
+        print(f'Bias stats = {bias_stats}')
         
         # Add them to stats dict
         stats.update(bias_stats)

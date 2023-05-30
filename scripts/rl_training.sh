@@ -2,6 +2,7 @@
 
 MODEL_NAME=$1
 REWARD_MODEL_NAME=$2
+NUM_TRAINING_EXAMPLES=$3
 
 #python3 \
 accelerate launch --num_machines 1 --num_processes 1 \
@@ -22,5 +23,6 @@ accelerate launch --num_machines 1 --num_processes 1 \
 	--output_dir=${MODEL_NAME}-rl-finetune \
 	--mini_batch_size=1 \
 	--batch_size=16 \
-	--num_training_examples=10000
+	--eval_steps=1 \
+	--num_training_examples=${NUM_TRAINING_EXAMPLES}
 
