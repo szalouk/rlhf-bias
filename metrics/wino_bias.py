@@ -1,10 +1,12 @@
 from datasets import load_dataset
 import evaluate
 import random
+import torch
+import torch.nn.functional as F
 
 class WinoBiasMetric:
     def __init__(self):
-        wino_bias = load_dataset("mathemakitten/winobias_antistereotype_test", split="test")
+        data = load_dataset("mathemakitten/winobias_antistereotype_test", split="test")
         
         self.prompts1 = [data[i]['text'] + data[i]["classes"][0] for i in range(len(data))]
         self.prompts2 = [data[i]['text'] + data[i]["classes"][1] for i in range(len(data))]
@@ -16,6 +18,18 @@ class WinoBiasMetric:
         outputs = model(**input, labels=input["input_ids"])
         loss = outputs[1].detach().item()
         return loss
+    
+    def log_probs_from_logits(logits, labels):
+        logp = F.log_softmax(logits, dim=-1)
+        logp_label = torch.gather(logp, 2, labels.unsqueeze(2)).squeeze(-1)
+        return logp_label
+    
+    def sequence_logprob(model, labels, input_len=0):
+        with torch.no_grad():
+            output = model(labels)
+            log_probs = self.log_probs_from_logits(output.logits[:,:-1, :], labels[:, 1:])
+            seq_log_prob = torch.sum(log_probs[:, input_len:])
+        return seq_log_prob.cpu().item()
 
     def compute(model, tokenizer):
         continuations = {k: [] for k in ['queer', 'nonqueer']}
