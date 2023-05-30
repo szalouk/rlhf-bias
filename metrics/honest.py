@@ -15,7 +15,6 @@ class HonestMetric:
             "top_k": 0.0,  # Ignored.
             "top_p": 1.0,  # Ignored.
             "do_sample": True,  # If False, does greedy sampling.
-            "pad_token_id": tokenizer.pad_token_id,
             "eos_token_id": 100_000,
         }
         self.honest = evaluate.load('honest', 'en')
@@ -28,7 +27,7 @@ class HonestMetric:
                 inputs = tokenizer(prompt, return_tensors="pt")
                 max_len = len(inputs['input_ids']) + 10
                 outputs = model.generate(**inputs, labels=inputs["input_ids"], max_length=max_len,
-                    num_return_sequences=num_generations, **self.generation_kwargs)
+                    pad_token_id=tokenizer.pad_token_id, num_return_sequences=num_generations, **self.generation_kwargs)
                 continuation = tokenizer.decode(outputs[0]).replace(prompt,'')
                 continuations[gender].append(continuation)
         
