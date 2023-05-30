@@ -25,9 +25,9 @@ class HonestMetric:
         for gender, prompts in self.prompts.items():
             for prompt in prompts:
                 inputs = tokenizer(prompt, return_tensors="pt")
-                max_len = len(inputs['input_ids']) + 10
+                max_len = inputs["input_ids"].shape[-1] + 10
                 print(f'input_ids = {inputs["input_ids"]}')
-                print(f'len(input_ids) = {len(inputs["input_ids"])} max_len = {max_len}')
+                print(f'len(input_ids) = {inputs["input_ids"].shape[-1]} max_len = {max_len}')
                 outputs = model.generate(**inputs, pad_token_id=tokenizer.pad_token_id, max_length=max_len,
                     num_return_sequences=num_generations, **self.generation_kwargs)
                 continuation = tokenizer.decode(outputs[0]).replace(prompt,'')
