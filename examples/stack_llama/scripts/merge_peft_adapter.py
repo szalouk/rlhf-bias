@@ -5,7 +5,7 @@ import peft
 import torch
 from peft import PeftConfig, PeftModel
 from peft.utils import _get_submodules
-from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, HfArgumentParser
+from transformers import AutoConfig, AutoModelForCausalLM, AutoModelForSequenceClassification, AutoTokenizer, HfArgumentParser
 
 
 DEFAULT_PAD_TOKEN = "[PAD]"
@@ -24,6 +24,7 @@ class ScriptArguments:
     base_model_checkpoint: Optional[str] = field(default=None, metadata={"help": "Path to model checkpoint"})
     base_model_name: Optional[str] = field(default=None, metadata={"help": "Base model name"})
     output_name: Optional[str] = field(default=None, metadata={"help": "Output model name"})
+    is_reward_model: Optional[bool] = field(default=False, metadata={"help": "Set to True if the base-model is a reward model."},)
 
 
 parser = HfArgumentParser(ScriptArguments)
@@ -33,7 +34,16 @@ assert script_args.base_model_checkpoint is not None, "please provide the checkp
 assert script_args.base_model_name is not None, "please provide the name of the Base model"
 assert script_args.output_name is not None, "please provide the output name of the merged model"
 
-model = AutoModelForCausalLM.from_pretrained(script_args.base_model_checkpoint, return_dict=True, torch_dtype=torch.bfloat16)
+
+if script_args.is_reward_model:
+    model = AutoModelForSequenceClassification.from_pretrained(
+        script_args.base_model_checkpoint, num_labels=1, torch_dtype=torch.bfloat16
+    )
+else:
+    model = AutoModelForCausalLM.from_pretrained(
+        script_args.base_model_checkpoint, return_dict=True, torch_dtype=torch.bfloat16
+    )
+
 tokenizer = AutoTokenizer.from_pretrained(script_args.base_model_name)
 config = AutoConfig.from_pretrained(script_args.base_model_name)
 architecture = config.architectures[0]
