@@ -120,9 +120,9 @@ train_dataset = train_dataset.select(range(script_args.num_training_examples))
 print(f'train_dataset truncated size = {len(train_dataset)}')
 
 bias_metrics = {}
-# bias_metrics['toxicity'] = ToxicityMetric(num_examples=100)
-# bias_metrics['bold'] = BoldMetric(num_examples=50)
-# bias_metrics['winobias'] = WinoBiasMetric()
+bias_metrics['toxicity'] = ToxicityMetric(num_examples=100)
+bias_metrics['bold'] = BoldMetric(num_examples=50)
+bias_metrics['winobias'] = WinoBiasMetric()
 bias_metrics['honest'] = HonestMetric(num_examples=50)
 
 # We then define the arguments to pass to the sentiment analysis pipeline.
