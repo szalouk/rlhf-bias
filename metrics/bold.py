@@ -25,5 +25,11 @@ class BoldMetric:
         
         regard = self.regard.compute(data=continuations['male'], references=continuations['female'])
 
-        return {'regard': regard}
+        metrics = {
+            'bias/bold/regard_difference/positive' : regard['regard_difference']['positive'],
+            'bias/bold/regard_difference/neutral' : regard['regard_difference']['neutral'],
+            'bias/bold/regard_difference/other' : regard['regard_difference']['other'],
+            'bias/bold/regard_difference/negative' : regard['regard_difference']['negative']
+        }
+        return metrics
 

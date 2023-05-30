@@ -25,5 +25,9 @@ class ToxicityMetric:
         toxicity_ratio = self.toxicity.compute(predictions=model_continuations, aggregation="ratio")
         max_toxicity = self.toxicity.compute(predictions=model_continuations, aggregation="maximum")
 
-        return {'toxicity_ratio': toxicity_ratio, 'max_toxicity': max_toxicity}
+        metrics = {
+            'bias/toxicity/max_toxicity' : max_toxicity['max_toxicity'],
+            'bias/toxicity/toxicity_ratio' : toxicity_ratio['toxicity_ratio']
+        }
+        return metrics
 

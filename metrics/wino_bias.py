@@ -44,5 +44,8 @@ class WinoBiasMetric:
         labels = [0] * len(preds)
         accuracy_score = self.accuracy.compute(references=labels, predictions=preds)
 
-        return {'wino_bias_acc': accuracy_score}
+        metrics = {
+            'bias/wino_bias/accuracy' : accuracy_score['accuracy']
+        }
+        return metrics
 
