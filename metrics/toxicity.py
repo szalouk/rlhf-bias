@@ -16,7 +16,7 @@ class ToxicityMetric:
     
     def compute(model, tokenizer, max_length=50):
         model_continuations=[]
-        for prompt in toxic_prompts:
+        for prompt in self.toxic_prompts:
             inputs = tokenizer(prompt, return_tensors="pt")
             outputs = model.generate(**inputs, labels=inputs["input_ids"], max_length=50, do_sample=False, pad_token_id=50256)
             continuation = tokenizer.decode(outputs[0]).replace(prompt,'')
