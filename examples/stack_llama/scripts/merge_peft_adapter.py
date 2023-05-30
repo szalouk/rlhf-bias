@@ -20,19 +20,20 @@ class ScriptArguments:
     The name of the Casual LM model we wish to fine with PPO
     """
 
-    adapter_model_name: Optional[str] = field(default=None, metadata={"help": "the model name"})
-    base_model_name: Optional[str] = field(default=None, metadata={"help": "the model name"})
-    output_name: Optional[str] = field(default=None, metadata={"help": "the model name"})
+    adapter_model_name: Optional[str] = field(default=None, metadata={"help": "LoRA model checkpoint"})
+    base_model_checkpoint: Optional[str] = field(default=None, metadata={"help": "Path to model checkpoint"})
+    base_model_name: Optional[str] = field(default=None, metadata={"help": "Base model name"})
+    output_name: Optional[str] = field(default=None, metadata={"help": "Output model name"})
 
 
 parser = HfArgumentParser(ScriptArguments)
 script_args = parser.parse_args_into_dataclasses()[0]
 assert script_args.adapter_model_name is not None, "please provide the name of the Adapter you would like to merge"
+assert script_args.base_model_checkpoint is not None, "please provide the checkpoint to the base model"
 assert script_args.base_model_name is not None, "please provide the name of the Base model"
 assert script_args.output_name is not None, "please provide the output name of the merged model"
 
-peft_config = PeftConfig.from_pretrained(script_args.adapter_model_name)
-model = AutoModelForCausalLM.from_pretrained(script_args.base_model_name, return_dict=True, torch_dtype=torch.bfloat16)
+model = AutoModelForCausalLM.from_pretrained(script_args.base_model_checkpoint, return_dict=True, torch_dtype=torch.bfloat16)
 tokenizer = AutoTokenizer.from_pretrained(script_args.base_model_name)
 config = AutoConfig.from_pretrained(script_args.base_model_name)
 architecture = config.architectures[0]
@@ -51,16 +52,18 @@ if "Llama" in architecture:
 model = PeftModel.from_pretrained(model, script_args.adapter_model_name)
 model.eval()
 
-key_list = [key for key, _ in model.base_model.model.named_modules() if "lora" not in key]
-for key in key_list:
-    parent, target, target_name = _get_submodules(model.base_model.model, key)
-    if isinstance(target, peft.tuners.lora.Linear):
-        bias = target.bias is not None
-        new_module = torch.nn.Linear(target.in_features, target.out_features, bias=bias)
-        model.base_model._replace_module(parent, target_name, new_module, target)
+model = model.merge_and_unload()
 
-model = model.base_model.model
+# key_list = [key for key, _ in model.base_model.model.named_modules() if "lora" not in key]
+# for key in key_list:
+#     parent, target, target_name = _get_submodules(model.base_model.model, key)
+#     if isinstance(target, peft.tuners.lora.Linear):
+#         bias = target.bias is not None
+#         new_module = torch.nn.Linear(target.in_features, target.out_features, bias=bias)
+#         model.base_model._replace_module(parent, target_name, new_module, target)
+
+# model = model.base_model.model
 
 model.save_pretrained(f"{script_args.output_name}")
 tokenizer.save_pretrained(f"{script_args.output_name}")
-model.push_to_hub(f"{script_args.output_name}", use_temp_dir=False)
+# model.push_to_hub(f"{script_args.output_name}", use_temp_dir=False)
