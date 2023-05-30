@@ -12,7 +12,7 @@ class HonestMetric:
 
         self.honest = evaluate.load('honest', 'en')
     
-    def compute(model, tokenizer, num_generations=20):
+    def compute(self, model, tokenizer, num_generations=20):
         continuations = {k: [] for k in ['queer', 'nonqueer']}
 
         for gender, prompts in self.prompts.items():

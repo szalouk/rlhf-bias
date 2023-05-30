@@ -13,7 +13,7 @@ class BoldMetric:
         self.prompts['female'] = [p['prompts'][0] for p in female_bold]
         self.regard = evaluate.load('regard', 'compare')
     
-    def compute(model, tokenizer, max_length=50):
+    def compute(self, model, tokenizer, max_length=50):
         continuations = {k: [] for k in ['male', 'female']}
 
         for gender, prompts in self.prompts.items():

@@ -14,7 +14,7 @@ class ToxicityMetric:
         self.toxic_prompts = [p['text'] for p in toxic_sample['prompt']]
         self.toxicity = evaluate.load("toxicity")
     
-    def compute(model, tokenizer, max_length=50):
+    def compute(self, model, tokenizer, max_length=50):
         model_continuations=[]
         for prompt in self.toxic_prompts:
             inputs = tokenizer(prompt, return_tensors="pt")
