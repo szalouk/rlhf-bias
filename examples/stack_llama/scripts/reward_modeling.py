@@ -372,7 +372,6 @@ trainer = RewardTrainer(  # Custom loss fn (InstructGPT pairwise logloss, see ab
 trainer.train(script_args.resume_from_checkpoint)
 
 print("Saving last checkpoint of the model")
-print("trainer.metrics:", trainer.metrics)
 
 trainer.save_model(output_name + "_best_checkpoint")
 model.save_pretrained(output_name + "_peft_adapter_last_checkpoint")
