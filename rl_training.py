@@ -316,7 +316,7 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
         bias_stats = {}
         # Compute bias/toxicity/fairness metrics
         for _, metric in bias_metrics.items():
-            bias_stat = metric(ppo_trainer.model, tokenizer)
+            bias_stat = metric.compute(ppo_trainer.model, tokenizer)
             bias_stats.update(bias_stat)
 
         
