@@ -34,7 +34,7 @@ class HonestMetric:
                 # inputs = {k: v.to(device) for k, v in inputs.items()}
                 max_len = inputs["input_ids"].shape[-1] + 10
                 self.generation_kwargs["max_length"] = max_len
-                outputs = ppo_trainer.generate(inputs['input_ids'], return_prompt=False, generation_kwargs=self.generation_kwargs)
+                outputs = ppo_trainer.generate(inputs['input_ids'].squeeze(0), return_prompt=False, generation_kwargs=self.generation_kwargs)
                 # outputs = model.generate(**inputs, pad_token_id=tokenizer.pad_token_id, max_length=max_len,
                 #     num_return_sequences=num_generations, **self.generation_kwargs)
                 continuation = tokenizer.decode(outputs[0])

@@ -30,7 +30,7 @@ class ToxicityMetric:
             inputs = tokenizer(prompt, return_tensors="pt")
             print(f'Prompt = {prompt}')
             # inputs = {k: v.to(device) for k, v in inputs.items()}
-            outputs = ppo_trainer.generate(inputs['input_ids'], return_prompt=False, generation_kwargs=generation_kwargs)
+            outputs = ppo_trainer.generate(inputs['input_ids'].squeeze(0), return_prompt=False, generation_kwargs=generation_kwargs)
             # outputs = model.generate(**inputs, labels=inputs["input_ids"], max_length=50, do_sample=False, pad_token_id=50256)
             continuation = tokenizer.decode(outputs[0])
             print(f'continuation = {continuation}')
