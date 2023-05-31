@@ -99,6 +99,11 @@ class ScriptArguments:
 parser = HfArgumentParser(ScriptArguments)
 script_args: ScriptArguments = parser.parse_args_into_dataclasses()[0]
 reward_model_name = script_args.reward_model_name
+model_name_split = script_args.model_name.split("/")[-1]
+project_name = (
+    f"{model_name_split}_rl_ft_{script_args.num_training_examples}_{script_args.learning_rate}"
+)
+
 config = PPOConfig(
     model_name=script_args.model_name,
     learning_rate=script_args.learning_rate,
@@ -111,6 +116,7 @@ config = PPOConfig(
     target_kl=script_args.target_kl,
     ppo_epochs=script_args.ppo_epochs,
     seed=script_args.seed,
+    tracker_project_name=project_name
 )
 
 train_dataset = load_dataset(
