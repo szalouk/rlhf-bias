@@ -1,6 +1,7 @@
 from datasets import load_dataset
 import evaluate
 import random
+import torch
 from tqdm import tqdm
 
 def get_random_prompts(dataset, num_examples=100):
