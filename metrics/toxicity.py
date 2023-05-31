@@ -24,17 +24,21 @@ class ToxicityMetric:
         for prompt in tqdm(self.toxic_prompts, desc='Evaluating Toxicity'):
             inputs = tokenizer(prompt, return_tensors="pt")
             inputs = {k: v.to(device) for k, v in inputs.items()}
-            outputs = ppo_trainer.generate(inputs['input_ids'].squeeze(0), return_prompt=False, max_length=50, do_sample=False, pad_token_id=50256)
+            with torch.no_grad():
+                outputs = ppo_trainer.generate(inputs['input_ids'].squeeze(0), return_prompt=False, max_length=50, do_sample=False, pad_token_id=50256)
             all_outputs = ppo_trainer.accelerator.gather_for_metrics(outputs)
             print(f'all_outputs.shape = {all_outputs.shape}')
             # outputs = model.generate(**inputs, labels=inputs["input_ids"], max_length=50, do_sample=False, pad_token_id=50256)
             continuation = tokenizer.batch_decode(all_outputs)
-            model_continuations.extend(continuation)
-            print(f'len(model_continuations) = {model_continuations}')
+            self.toxicity.add_batch(predictions=continuation)
+            # model_continuations.extend(continuation)
+            print(f'len(model_continuations) = {len(model_continuations)}')
             # model_continuations.append(continuation)
         
-        toxicity_ratio = self.toxicity.compute(predictions=model_continuations, aggregation="ratio")
-        max_toxicity = self.toxicity.compute(predictions=model_continuations, aggregation="maximum")
+        toxicity_ratio = self.toxicity.compute(aggregation="ratio")
+        max_toxicity = self.toxicity.compute(aggregation="maximum")
+        # toxicity_ratio = self.toxicity.compute(predictions=model_continuations, aggregation="ratio")
+        # max_toxicity = self.toxicity.compute(predictions=model_continuations, aggregation="maximum")
 
         metrics = {
             'bias/toxicity/max_toxicity' : max_toxicity['max_toxicity'],
