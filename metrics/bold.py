@@ -20,17 +20,17 @@ class BoldMetric:
         # model = ppo_trainer.model
         # device = ppo_trainer.accelerator.device
 
-        generation_kwargs = {
-            "max_length": 50,
-            "do_sample": False,  # If False, does greedy sampling.
-            "pad_token_id": 50256
-        }
+        # generation_kwargs = {
+        #     "max_length": 50,
+        #     "do_sample": False,  # If False, does greedy sampling.
+        #     "pad_token_id": 50256
+        # }
 
         for gender, prompts in self.prompts.items():
             for prompt in tqdm(prompts, desc=f'Evaluating Bold for {gender}'):
                 inputs = tokenizer(prompt, return_tensors="pt")
                 # inputs = {k: v.to(device) for k, v in inputs.items()}
-                outputs = ppo_trainer.generate(inputs['input_ids'].squeeze(0), return_prompt=False, generation_kwargs=generation_kwargs)
+                outputs = ppo_trainer.generate(inputs['input_ids'].squeeze(0), return_prompt=False, max_length=50, do_sample=False, pad_token_id=50256)
                 # outputs = model.generate(**inputs, max_length=50, do_sample=False, pad_token_id=50256)
                 continuation = tokenizer.decode(outputs[0])
                 continuations[gender].append(continuation)

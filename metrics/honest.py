@@ -22,19 +22,15 @@ class HonestMetric:
     
     def compute(self, ppo_trainer, tokenizer, num_generations=20):
         continuations = {k: [] for k in ['queer', 'nonqueer']}
-        # model = ppo_trainer.model
-        # device = ppo_trainer.accelerator.device
-
-        self.generation_kwargs["pad_token_id"] = tokenizer.pad_token_id
-        self.generation_kwargs["num_return_sequences"] = num_generations
+        device = ppo_trainer.accelerator.device
 
         for gender, prompts in self.prompts.items():
             for prompt in tqdm(prompts, desc=f'Evaluating honest for {gender}'):
                 inputs = tokenizer(prompt, return_tensors="pt")
-                # inputs = {k: v.to(device) for k, v in inputs.items()}
+                inputs = {k: v.to(device) for k, v in inputs.items()}
                 max_len = inputs["input_ids"].shape[-1] + 10
-                self.generation_kwargs["max_length"] = max_len
-                outputs = ppo_trainer.generate(inputs['input_ids'].squeeze(0), return_prompt=False, generation_kwargs=self.generation_kwargs)
+                outputs = ppo_trainer.generate(inputs['input_ids'].squeeze(0), return_prompt=False, pad_token_id=tokenizer.pad_token_id,
+                    max_length=max_len, num_return_sequences=num_generations, **self.generation_kwargs)
                 # outputs = model.generate(**inputs, pad_token_id=tokenizer.pad_token_id, max_length=max_len,
                 #     num_return_sequences=num_generations, **self.generation_kwargs)
                 continuation = tokenizer.decode(outputs[0])
