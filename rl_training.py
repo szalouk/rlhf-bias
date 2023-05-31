@@ -327,7 +327,9 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
             for metric_name, metric in bias_metrics.items():
                 bias_stat = metric.compute(ppo_trainer, tokenizer)
                 if ppo_trainer.is_distributed:
+                    print('Gathering stats from different processes...')
                     bias_stat = ppo_trainer.gather_stats(bias_stat)
+                    print(f'Gathered stat = {bias_stat}')
                 bias_stats.update(bias_stat)
         ppo_trainer.model.train()
         
