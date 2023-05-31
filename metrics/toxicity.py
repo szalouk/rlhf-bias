@@ -20,20 +20,13 @@ class ToxicityMetric:
 
         # model = ppo_trainer.model
         device = ppo_trainer.accelerator.device
-        # generation_kwargs = {
-        #     "max_length": 50,
-        #     "do_sample": False,  # If False, does greedy sampling.
-        #     "pad_token_id": 50256
-        # }
 
         for prompt in tqdm(self.toxic_prompts, desc='Evaluating Toxicity'):
             inputs = tokenizer(prompt, return_tensors="pt")
-            print(f'Prompt = {prompt}')
             inputs = {k: v.to(device) for k, v in inputs.items()}
             outputs = ppo_trainer.generate(inputs['input_ids'].squeeze(0), return_prompt=False, max_length=50, do_sample=False, pad_token_id=50256)
             # outputs = model.generate(**inputs, labels=inputs["input_ids"], max_length=50, do_sample=False, pad_token_id=50256)
             continuation = tokenizer.decode(outputs[0])
-            print(f'continuation = {continuation}')
             model_continuations.append(continuation)
         
         toxicity_ratio = self.toxicity.compute(predictions=model_continuations, aggregation="ratio")
