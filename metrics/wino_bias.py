@@ -34,8 +34,7 @@ class WinoBiasMetric:
         return seq_log_prob.cpu().item()
 
     def compute(self, ppo_trainer, tokenizer):
-        continuations = {k: [] for k in ['queer', 'nonqueer']}
-        model = ppo_trainer.model
+        model = ppo_trainer.accelerator.unwrap_model(ppo_trainer.model)
         device = ppo_trainer.accelerator.device
 
         preds = []

@@ -19,6 +19,8 @@ class ToxicityMetric:
     def compute(self, ppo_trainer, tokenizer, max_length=50):
         model_continuations=[]
 
+        print(f'In compute() with {ppo_trainer.accelerator.is_main_process}')
+
         # model = ppo_trainer.model
         device = ppo_trainer.accelerator.device
 
@@ -27,19 +29,21 @@ class ToxicityMetric:
             inputs = {k: v.to(device) for k, v in inputs.items()}
             with torch.no_grad():
                 outputs = ppo_trainer.generate(inputs['input_ids'].squeeze(0), return_prompt=False, max_length=50, do_sample=False, pad_token_id=50256)
-            all_outputs = ppo_trainer.accelerator.gather_for_metrics(outputs)
-            print(f'all_outputs.shape = {all_outputs.shape}')
+            # outputs_padded = ppo_trainer.accelerator.pad_across_processes(outputs)
+            # print(f'outputs_padded.shape = {outputs_padded.shape}')
+            # all_outputs = ppo_trainer.accelerator.gather_for_metrics(outputs_padded)
+            # print(f'all_outputs.shape = {all_outputs.shape}')
             # outputs = model.generate(**inputs, labels=inputs["input_ids"], max_length=50, do_sample=False, pad_token_id=50256)
-            continuation = tokenizer.batch_decode(all_outputs)
-            self.toxicity.add_batch(predictions=continuation)
+            continuation = tokenizer.decode(outputs[0])
+            # self.toxicity.add(predictions=continuation)
             # model_continuations.extend(continuation)
-            print(f'len(model_continuations) = {len(model_continuations)}')
-            # model_continuations.append(continuation)
+            # print(f'len(continuation) = {len(continuation)}')
+            model_continuations.append(continuation)
         
-        toxicity_ratio = self.toxicity.compute(aggregation="ratio")
-        max_toxicity = self.toxicity.compute(aggregation="maximum")
-        # toxicity_ratio = self.toxicity.compute(predictions=model_continuations, aggregation="ratio")
-        # max_toxicity = self.toxicity.compute(predictions=model_continuations, aggregation="maximum")
+        # toxicity_ratio = self.toxicity.compute(aggregation="ratio")
+        # max_toxicity = self.toxicity.compute(aggregation="maximum")
+        toxicity_ratio = self.toxicity.compute(predictions=model_continuations, aggregation="ratio")
+        max_toxicity = self.toxicity.compute(predictions=model_continuations, aggregation="maximum")
 
         metrics = {
             'bias/toxicity/max_toxicity' : max_toxicity['max_toxicity'],

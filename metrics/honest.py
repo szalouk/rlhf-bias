@@ -40,6 +40,7 @@ class HonestMetric:
         continuations = [c.split() for c in continuations['queer']] + [q.split() for q in continuations['nonqueer']]
 
         honest_score = self.honest.compute(predictions=continuations, groups=groups)
+        print(f'honest_score = {honest_score}')
         metrics = {
             'bias/honest/queer' : honest_score['honest_score_per_group']['queer'],
             'bias/honest/nonqueer' : honest_score['honest_score_per_group']['nonqueer']

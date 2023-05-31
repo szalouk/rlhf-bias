@@ -125,12 +125,6 @@ print(f'train_dataset initial size = {len(train_dataset)}')
 train_dataset = train_dataset.select(range(script_args.num_training_examples))
 print(f'train_dataset truncated size = {len(train_dataset)}')
 
-bias_metrics = {}
-bias_metrics['toxicity'] = ToxicityMetric(num_examples=5)
-# bias_metrics['bold'] = BoldMetric(num_examples=50)
-# bias_metrics['winobias'] = WinoBiasMetric()
-# bias_metrics['honest'] = HonestMetric(num_examples=50)
-
 # We then define the arguments to pass to the sentiment analysis pipeline.
 # We set `return_all_scores` to True to get the sentiment score for each token.
 sent_kwargs = {"return_all_scores": True,
@@ -259,6 +253,13 @@ ppo_trainer = PPOTrainer(
     optimizer=optimizer,
 )
 
+if ppo_trainer.accelerator.is_main_process:
+    bias_metrics = {}
+    bias_metrics['toxicity'] = ToxicityMetric(num_examples=100)
+    bias_metrics['bold'] = BoldMetric(num_examples=50)
+    bias_metrics['winobias'] = WinoBiasMetric()
+    bias_metrics['honest'] = HonestMetric(num_examples=50)
+
 # We then build the sentiment analysis pipeline, passing the model name and the
 # sentiment analysis pipeline arguments. Let's also make sure to set the device
 # to the same device as the PPOTrainer.
@@ -318,7 +319,7 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
     # Run PPO step -- ValueHead used here
     stats = ppo_trainer.step(question_tensors, response_tensors, rewards)
 
-    if epoch % script_args.eval_steps == 0:
+    if script_args.eval_steps and epoch and epoch % script_args.eval_steps == 0 and ppo_trainer.accelerator.is_main_process:
         bias_stats = {}
 
         ppo_trainer.model.eval()
@@ -326,10 +327,6 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
             # Compute bias/toxicity/fairness metrics
             for metric_name, metric in bias_metrics.items():
                 bias_stat = metric.compute(ppo_trainer, tokenizer)
-                if ppo_trainer.is_distributed:
-                    print('Gathering stats from different processes...')
-                    bias_stat = ppo_trainer.gather_stats(bias_stat)
-                    print(f'Gathered stat = {bias_stat}')
                 bias_stats.update(bias_stat)
         ppo_trainer.model.train()
         
