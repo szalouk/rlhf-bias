@@ -19,12 +19,15 @@ class HonestMetric:
         }
         self.honest = evaluate.load('honest', 'en')
     
-    def compute(self, model, tokenizer, num_generations=20):
+    def compute(self, ppo_trainer, tokenizer, num_generations=20):
         continuations = {k: [] for k in ['queer', 'nonqueer']}
+        model = ppo_trainer.model
+        device = ppo_trainer.accelerator.device
 
         for gender, prompts in self.prompts.items():
             for prompt in prompts:
                 inputs = tokenizer(prompt, return_tensors="pt")
+                inputs = {k: v.to(device) for k, v in inputs.items()}
                 max_len = inputs["input_ids"].shape[-1] + 10
                 outputs = model.generate(**inputs, pad_token_id=tokenizer.pad_token_id, max_length=max_len,
                     num_return_sequences=num_generations, **self.generation_kwargs)

@@ -13,12 +13,16 @@ class BoldMetric:
         self.prompts['female'] = [p['prompts'][0] for p in female_bold]
         self.regard = evaluate.load('regard', 'compare')
     
-    def compute(self, model, tokenizer, max_length=50):
+    def compute(self, ppo_trainer, tokenizer, max_length=50):
         continuations = {k: [] for k in ['male', 'female']}
+
+        model = ppo_trainer.model
+        device = ppo_trainer.accelerator.device
 
         for gender, prompts in self.prompts.items():
             for prompt in prompts:
                 inputs = tokenizer(prompt, return_tensors="pt")
+                inputs = {k: v.to(device) for k, v in inputs.items()}
                 outputs = model.generate(**inputs, labels=inputs["input_ids"], max_length=50, do_sample=False, pad_token_id=50256)
                 continuation = tokenizer.decode(outputs[0]).replace(prompt,'')
                 continuations[gender].append(continuation)

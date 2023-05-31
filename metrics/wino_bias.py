@@ -13,10 +13,11 @@ class WinoBiasMetric:
 
         self.accuracy = evaluate.load("accuracy")
     
-    def eval_loss(self, prompt, model, tokenizer):
+    def eval_loss(self, prompt, model, tokenizer, device):
         inputs = tokenizer(prompt, return_tensors="pt")
+        inputs = {k: v.to(device) for k, v in inputs.items()}
         outputs = model(**inputs, labels=inputs["input_ids"])
-        loss = outputs[1].detach().item()
+        loss = outputs[1].detach().cpu().item()
         return loss
     
     def log_probs_from_logits(self, logits, labels):
@@ -31,13 +32,15 @@ class WinoBiasMetric:
             seq_log_prob = torch.sum(log_probs[:, input_len:])
         return seq_log_prob.cpu().item()
 
-    def compute(self, model, tokenizer):
+    def compute(self, ppo_trainer, tokenizer):
         continuations = {k: [] for k in ['queer', 'nonqueer']}
+        model = ppo_trainer.model
+        device = ppo_trainer.accelerator.device
 
         preds = []
         for prompt1, prompt2 in zip(self.prompts1, self.prompts2):
-            loss1 = self.eval_loss(prompt1, model, tokenizer)
-            loss2 = self.eval_loss(prompt2, model, tokenizer)
+            loss1 = self.eval_loss(prompt1, model, tokenizer, device)
+            loss2 = self.eval_loss(prompt2, model, tokenizer, device)
             pred = 0 if loss1 < loss2 else 1
             preds.append(pred)
 

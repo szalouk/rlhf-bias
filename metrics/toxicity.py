@@ -14,10 +14,15 @@ class ToxicityMetric:
         self.toxic_prompts = [p['text'] for p in toxic_sample['prompt']]
         self.toxicity = evaluate.load("toxicity")
     
-    def compute(self, model, tokenizer, max_length=50):
+    def compute(self, ppo_trainer, tokenizer, max_length=50):
         model_continuations=[]
+
+        model = ppo_trainer.model
+        device = ppo_trainer.accelerator.device
+
         for prompt in self.toxic_prompts:
             inputs = tokenizer(prompt, return_tensors="pt")
+            inputs = {k: v.to(device) for k, v in inputs.items()}
             outputs = model.generate(**inputs, labels=inputs["input_ids"], max_length=50, do_sample=False, pad_token_id=50256)
             continuation = tokenizer.decode(outputs[0]).replace(prompt,'')
             model_continuations.append(continuation)

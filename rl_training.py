@@ -314,11 +314,14 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
 
     if epoch % script_args.eval_steps == 0:
         bias_stats = {}
-        # Compute bias/toxicity/fairness metrics
-        for metric_name, metric in bias_metrics.items():
-            bias_stat = metric.compute(ppo_trainer.model, tokenizer)
-            bias_stats.update(bias_stat)
 
+        ppo_trainer.model.eval()
+        with torch.no_grad():
+            # Compute bias/toxicity/fairness metrics
+            for metric_name, metric in bias_metrics.items():
+                bias_stat = metric.compute(ppo_trainer, tokenizer)
+                bias_stats.update(bias_stat)
+        ppo_trainer.model.train()
         
         print(f'Bias stats = {bias_stats}')
         
