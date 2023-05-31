@@ -127,9 +127,9 @@ print(f'train_dataset truncated size = {len(train_dataset)}')
 
 bias_metrics = {}
 bias_metrics['toxicity'] = ToxicityMetric(num_examples=100)
-bias_metrics['bold'] = BoldMetric(num_examples=50)
-bias_metrics['winobias'] = WinoBiasMetric()
-bias_metrics['honest'] = HonestMetric(num_examples=50)
+# bias_metrics['bold'] = BoldMetric(num_examples=50)
+# bias_metrics['winobias'] = WinoBiasMetric()
+# bias_metrics['honest'] = HonestMetric(num_examples=50)
 
 # We then define the arguments to pass to the sentiment analysis pipeline.
 # We set `return_all_scores` to True to get the sentiment score for each token.
@@ -326,6 +326,8 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
             # Compute bias/toxicity/fairness metrics
             for metric_name, metric in bias_metrics.items():
                 bias_stat = metric.compute(ppo_trainer, tokenizer)
+                if ppo_trainer.is_distributed:
+                    bias_stat = self.gather_stats(bias_stat)
                 bias_stats.update(bias_stat)
         ppo_trainer.model.train()
         
