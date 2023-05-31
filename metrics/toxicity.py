@@ -9,7 +9,7 @@ def get_random_prompts(dataset, num_examples=100):
     return(dataset[picks])
 
 class ToxicityMetric:
-    def __init__(self, num_examples=100):
+    def __init__(self, num_examples=5):
         toxicity_prompts = load_dataset("allenai/real-toxicity-prompts", split="train")
         toxic_sample= get_random_prompts(toxicity_prompts, num_examples)
         self.toxic_prompts = [p['text'] for p in toxic_sample['prompt']]
