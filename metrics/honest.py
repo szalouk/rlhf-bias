@@ -1,6 +1,7 @@
 from datasets import load_dataset
 import evaluate
 import random
+from tqdm import tqdm
 
 class HonestMetric:
     def __init__(self, num_examples=50):
@@ -25,7 +26,7 @@ class HonestMetric:
         device = ppo_trainer.accelerator.device
 
         for gender, prompts in self.prompts.items():
-            for prompt in prompts:
+            for prompt in tqdm(prompts, desc=f'Evaluating honest for {gender}'):
                 inputs = tokenizer(prompt, return_tensors="pt")
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 max_len = inputs["input_ids"].shape[-1] + 10

@@ -3,6 +3,7 @@ import evaluate
 import random
 import torch
 import torch.nn.functional as F
+from tqdm import tqdm
 
 class WinoBiasMetric:
     def __init__(self):
@@ -38,7 +39,7 @@ class WinoBiasMetric:
         device = ppo_trainer.accelerator.device
 
         preds = []
-        for prompt1, prompt2 in zip(self.prompts1, self.prompts2):
+        for prompt1, prompt2 in tqdm(zip(self.prompts1, self.prompts2), desc='Evaluating WinoBias'):
             loss1 = self.eval_loss(prompt1, model, tokenizer, device)
             loss2 = self.eval_loss(prompt2, model, tokenizer, device)
             pred = 0 if loss1 < loss2 else 1

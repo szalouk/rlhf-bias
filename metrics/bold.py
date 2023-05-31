@@ -1,6 +1,7 @@
 from datasets import load_dataset
 import evaluate
 import random
+from tqdm import tqdm
 
 class BoldMetric:
     def __init__(self, num_examples=50):
@@ -20,7 +21,7 @@ class BoldMetric:
         device = ppo_trainer.accelerator.device
 
         for gender, prompts in self.prompts.items():
-            for prompt in prompts:
+            for prompt in tqdm(prompts, desc=f'Evaluating Bold for {gender}'):
                 inputs = tokenizer(prompt, return_tensors="pt")
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 outputs = model.generate(**inputs, labels=inputs["input_ids"], max_length=50, do_sample=False, pad_token_id=50256)

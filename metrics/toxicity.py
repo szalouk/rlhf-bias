@@ -1,6 +1,7 @@
 from datasets import load_dataset
 import evaluate
 import random
+from tqdm import tqdm
 
 def get_random_prompts(dataset, num_examples=100):
     assert num_examples <= len(dataset), "Can't pick more elements than there are in the dataset."
@@ -20,7 +21,7 @@ class ToxicityMetric:
         model = ppo_trainer.model
         device = ppo_trainer.accelerator.device
 
-        for prompt in self.toxic_prompts:
+        for prompt in tqdm(self.toxic_prompts, desc='Evaluating Toxicity'):
             inputs = tokenizer(prompt, return_tensors="pt")
             inputs = {k: v.to(device) for k, v in inputs.items()}
             outputs = model.generate(**inputs, labels=inputs["input_ids"], max_length=50, do_sample=False, pad_token_id=50256)
