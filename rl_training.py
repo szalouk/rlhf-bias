@@ -127,7 +127,8 @@ print(f'train_dataset truncated size = {len(train_dataset)}')
 
 # We then define the arguments to pass to the sentiment analysis pipeline.
 # We set `return_all_scores` to True to get the sentiment score for each token.
-sent_kwargs = {"return_all_scores": True,
+# sent_kwargs = {"return_all_scores": True,
+sent_kwargs = {"top_k": None,
                "function_to_apply": "none", "batch_size": 16, "truncation": True}
 
 tokenizer = AutoTokenizer.from_pretrained(
@@ -319,7 +320,7 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
     # Run PPO step -- ValueHead used here
     stats = ppo_trainer.step(question_tensors, response_tensors, rewards)
 
-    if script_args.eval_steps and epoch and epoch % script_args.eval_steps == 0 and ppo_trainer.accelerator.is_main_process:
+    if script_args.eval_steps and epoch % script_args.eval_steps == 0 and ppo_trainer.accelerator.is_main_process:
         bias_stats = {}
 
         ppo_trainer.model.eval()
