@@ -21,7 +21,7 @@ accelerate launch --multi_gpu --num_machines 1 --num_processes 4 \
 	--learning_rate=1.4e-5 \
 	--early_stopping=True \
 	--output_dir=${MODEL_NAME}-rl-finetune \
-	--mini_batch_size=2 \
+	--mini_batch_size=1 \
 	--batch_size=16 \
 	--eval_steps=100 \
 	--num_training_examples=${NUM_TRAINING_EXAMPLES}

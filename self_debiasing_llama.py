@@ -6,13 +6,12 @@ import torch
 import torch.nn.functional as F
 from datasets import load_dataset
 import evaluate
-from transformers import AutoConfig
 
 import random
 import json
 from tqdm import tqdm
 
-from self_debiasing.modeling import GPT2Wrapper
+from self_debiasing.modeling import LlamaWrapper
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
@@ -269,25 +268,15 @@ if __name__ == '__main__':
     torch.manual_seed(args.seed)
 
     for model_name in args.models:
-        wrapper = GPT2Wrapper(model_name=model_name)
-        config = AutoConfig.from_pretrained(model_name)
-        architecture = config.architectures[0]
-        print(architecture)
-        if "Llama" in architecture:
-
-            print("Setting EOS, BOS, and UNK tokens for LLama tokenizer")
-            wrapper._tokenizer.add_special_tokens(
-                {
-                    "eos_token": DEFAULT_EOS_TOKEN,
-                    "bos_token": DEFAULT_BOS_TOKEN,
-                    "unk_token": DEFAULT_UNK_TOKEN,
-                    "pad_token": DEFAULT_PAD_TOKEN,
-                }
-            )
-
+        wrapper = LlamaWrapper(model_name=model_name)
         wrapper._model.eval()
+        # wrapper._device = 'cpu'
 
         for mode in args.modes:
+            if model_name == "/atlas2/u/szalouk/llama-models/llama-7b-hf" and mode == "debiased":
+                print(f'Skipping {model_name}, {mode}')
+                continue
+
             debiasing_prefixes = (DEBIASING_PREFIXES if not args.use_keywords else DEBIASING_KEYWORDS) if mode == 'debiased' else []
             
             bias_metrics = {}
